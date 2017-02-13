@@ -60,6 +60,9 @@ public class CXFSAMLCallbackHandler implements CallbackHandler {
     private Crypto issuerCrypto = null;
 
     public CXFSAMLCallbackHandler() {
+        /**
+         * empty constructor
+         */
     }
 
     public CXFSAMLCallbackHandler(final HOKSAMLAssertionBuilder builder) {
@@ -75,45 +78,44 @@ public class CXFSAMLCallbackHandler implements CallbackHandler {
     public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         LOG.trace("CXFSAMLCallbackHandler.handle begin");
         for (final Callback callback : callbacks) {
-            if (callback instanceof SAMLCallback) {
+            if (!(callback instanceof SAMLCallback)) {
+                continue;
+            }
 
-                try {
+            try {
 
-                    final Message message = getCurrentMessage();
+                final Message message = getCurrentMessage();
 
-                    final Object obj = message.get("assertion");
+                final Object obj = message.get("assertion");
 
-                    AssertionType custAssertion = null;
-                    if (obj != null) {
-                        custAssertion = (AssertionType) obj;
-                    }
-
-                    final SAMLCallback oSAMLCallback = (SAMLCallback) callback;
-                    // TODO: need to convert into external properties similar like saml.properties
-                    oSAMLCallback.setIssuerKeyName("gateway");
-                    oSAMLCallback.setIssuerKeyPassword("changeit");
-                    oSAMLCallback.setSignAssertion(true);
-                    oSAMLCallback.setSendKeyValue(true);
-                    issuerCrypto = CryptoFactory.getInstance("signature.properties");
-                    oSAMLCallback.setIssuerCrypto(issuerCrypto);
-                    oSAMLCallback.setSamlVersion(Version.SAML_20);
-                    oSAMLCallback.setSignatureAlgorithm(SPConstants.SHA1);
-                    oSAMLCallback.setSignatureDigestAlgorithm(SPConstants.SHA1);
-
-
-
-
-                    final SamlTokenCreator creator = new SamlTokenCreator();
-
-                    final CallbackProperties properties = new CallbackMapProperties(addMessageProperties(
-                            creator.createRequestContext(custAssertion, getResource(message), null), message));
-
-                    oSAMLCallback.setAssertionElement(builder.build(properties));
-                } catch (final Exception e) {
-                    LOG.error("Failed to create saml: {}", e.getLocalizedMessage(), e);
+                AssertionType custAssertion = null;
+                if (obj != null) {
+                    custAssertion = (AssertionType) obj;
                 }
+
+                final SAMLCallback oSAMLCallback = (SAMLCallback) callback;
+                // TODO: need to convert into external properties similar like saml.properties
+                oSAMLCallback.setIssuerKeyName("gateway");
+                oSAMLCallback.setIssuerKeyPassword("changeit");
+                oSAMLCallback.setSignAssertion(true);
+                oSAMLCallback.setSendKeyValue(true);
+                issuerCrypto = CryptoFactory.getInstance("signature.properties");
+                oSAMLCallback.setIssuerCrypto(issuerCrypto);
+                oSAMLCallback.setSamlVersion(Version.SAML_20);
+                oSAMLCallback.setSignatureAlgorithm(SPConstants.SHA1);
+                oSAMLCallback.setSignatureDigestAlgorithm(SPConstants.SHA1);
+
+                final SamlTokenCreator creator = new SamlTokenCreator();
+
+                final CallbackProperties properties = new CallbackMapProperties(addMessageProperties(
+                    creator.createRequestContext(custAssertion, getResource(message), null), message));
+
+                oSAMLCallback.setAssertionElement(builder.build(properties));
+            } catch (final Exception e) {
+                LOG.error("Failed to create saml: {}", e.getLocalizedMessage(), e);
             }
         }
+
         LOG.trace("CXFSAMLCallbackHandler.handle end");
     }
 
@@ -124,7 +126,7 @@ public class CXFSAMLCallbackHandler implements CallbackHandler {
      * @param message source of additional properties.
      * @return map containing assertion data and additional properties.
      */
-    private Map<String, Object> addMessageProperties(final Map<String, Object> propertiesMap, final Message message) {
+    private static Map<String, Object> addMessageProperties(final Map<String, Object> propertiesMap, final Message message) {
 
         addPropertyFromMessage(propertiesMap, message, NhincConstants.WS_SOAP_TARGET_HOME_COMMUNITY_ID);
         addPropertyFromMessage(propertiesMap, message, NhincConstants.TARGET_API_LEVEL);
@@ -133,7 +135,8 @@ public class CXFSAMLCallbackHandler implements CallbackHandler {
         return propertiesMap;
     }
 
-    private void addPropertyFromMessage(final Map<String, Object> propertiesMap, final Message message, final String key) {
+    private static void addPropertyFromMessage(final Map<String, Object> propertiesMap, final Message message,
+        final String key) {
         propertiesMap.put(key, message.get(key));
     }
 
